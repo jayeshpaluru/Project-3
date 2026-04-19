@@ -1,0 +1,11 @@
+.topbar-appBar {
+  justify-content: center;
+}
+
+.topbar-spacer {
+  flex: 1;
+}
+
+.topbar-context {
+  margin-left: 12px;
+}

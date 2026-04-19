@@ -1,0 +1,27 @@
+.user-photos-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+}
+
+.user-photo-card img {
+  max-height: 520px;
+  object-fit: cover;
+}
+
+.user-photo-comment {
+  padding: 8px 0;
+  border-top: 1px solid #ececec;
+}
+
+.user-photo-comment-link {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  margin-right: 4px;
+}
+
+.user-photo-comment-link:hover {
+  text-decoration: underline;
+}

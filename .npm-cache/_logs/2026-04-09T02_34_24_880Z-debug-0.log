@@ -1,0 +1,60 @@
+0 verbose cli /usr/local/bin/node /usr/local/bin/npm
+1 info using npm@11.11.1
+2 info using node@v24.13.1
+3 silly config load:file:/usr/local/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/jayeshpaluru/Downloads/code/cs4339/project2/test/.npmrc
+5 silly config load:file:/Users/jayeshpaluru/.npmrc
+6 silly config load:file:/usr/local/etc/npmrc
+7 verbose title npm install
+8 verbose argv "install" "--cache" "/Users/jayeshpaluru/Downloads/code/cs4339/project2/.npm-cache"
+9 verbose logfile logs-max:10 dir:/Users/jayeshpaluru/Downloads/code/cs4339/project2/.npm-cache/_logs/2026-04-09T02_34_24_880Z-
+10 verbose logfile /Users/jayeshpaluru/Downloads/code/cs4339/project2/.npm-cache/_logs/2026-04-09T02_34_24_880Z-debug-0.log
+11 silly logfile done cleaning log files
+12 http fetch GET https://registry.npmjs.org/npm attempt 1 failed with ENOTFOUND
+13 silly packumentCache heap:4496293888 maxSize:1124073472 maxEntrySize:562036736
+14 silly idealTree buildDeps
+15 silly fetch manifest async@^3.2.6
+16 silly packumentCache full:https://registry.npmjs.org/async cache-miss
+17 http fetch GET https://registry.npmjs.org/async attempt 1 failed with ENOTFOUND
+18 http fetch GET https://registry.npmjs.org/npm attempt 2 failed with ENOTFOUND
+19 http fetch GET https://registry.npmjs.org/async attempt 2 failed with ENOTFOUND
+20 http fetch GET https://registry.npmjs.org/npm attempt 3 failed with ENOTFOUND
+21 http fetch GET https://registry.npmjs.org/async attempt 3 failed with ENOTFOUND
+22 silly fetch manifest lodash@^4.17.21
+23 silly packumentCache full:https://registry.npmjs.org/lodash cache-miss
+24 http fetch GET https://registry.npmjs.org/lodash attempt 1 failed with ENOTFOUND
+25 http fetch GET https://registry.npmjs.org/lodash attempt 2 failed with ENOTFOUND
+26 http fetch GET https://registry.npmjs.org/lodash attempt 3 failed with ENOTFOUND
+27 silly fetch manifest mocha@^9.2.0
+28 silly packumentCache full:https://registry.npmjs.org/mocha cache-miss
+29 http fetch GET https://registry.npmjs.org/mocha attempt 1 failed with ENOTFOUND
+30 http fetch GET https://registry.npmjs.org/mocha attempt 2 failed with ENOTFOUND
+31 http fetch GET https://registry.npmjs.org/mocha attempt 3 failed with ENOTFOUND
+32 silly placeDep ROOT async@ OK for: project2test@1.0.0 want: ^3.2.6
+33 silly placeDep ROOT lodash@ OK for: project2test@1.0.0 want: ^4.17.21
+34 silly placeDep ROOT mocha@ OK for: project2test@1.0.0 want: ^9.2.0
+35 verbose type system
+36 verbose stack FetchError: request to https://registry.npmjs.org/async failed, reason: getaddrinfo ENOTFOUND registry.npmjs.org
+36 verbose stack     at ClientRequest.<anonymous> (/usr/local/lib/node_modules/npm/node_modules/minipass-fetch/lib/index.js:130:14)
+36 verbose stack     at ClientRequest.emit (node:events:508:28)
+36 verbose stack     at emitErrorEvent (node:_http_client:108:11)
+36 verbose stack     at _destroy (node:_http_client:963:9)
+36 verbose stack     at onSocketNT (node:_http_client:983:5)
+36 verbose stack     at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+37 error code ENOTFOUND
+38 error syscall getaddrinfo
+39 error errno ENOTFOUND
+40 error network request to https://registry.npmjs.org/async failed, reason: getaddrinfo ENOTFOUND registry.npmjs.org
+41 error network This is a problem related to network connectivity.
+41 error network In most cases you are behind a proxy or have bad network settings.
+41 error network
+41 error network If you are behind a proxy, please make sure that the 'proxy' config is set properly.  See: 'npm help config'
+42 silly unfinished npm timer reify 1775702064994
+43 silly unfinished npm timer reify:loadTrees 1775702064994
+44 verbose cwd /Users/jayeshpaluru/Downloads/code/cs4339/project2/test
+45 verbose os Darwin 24.6.0
+46 verbose node v24.13.1
+47 verbose npm  v11.11.1
+48 verbose exit 1
+49 verbose code 1
+50 error A complete log of this run can be found in: /Users/jayeshpaluru/Downloads/code/cs4339/project2/.npm-cache/_logs/2026-04-09T02_34_24_880Z-debug-0.log
