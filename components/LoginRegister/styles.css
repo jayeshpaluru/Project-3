@@ -1,0 +1,19 @@
+.login-register {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 24px 8px;
+}
+
+.login-register-grid {
+  margin-top: 18px;
+}
+
+.login-register-divider {
+  min-height: 100%;
+}
+
+@media (max-width: 899px) {
+  .login-register-divider {
+    display: none;
+  }
+}

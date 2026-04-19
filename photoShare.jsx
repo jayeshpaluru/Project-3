@@ -1,9 +1,22 @@
-import React from 'react';
+/* eslint-disable react/jsx-no-bind */
+import React, { useEffect, useState } from 'react';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import ReactDOM from 'react-dom/client';
-import { Grid, Typography, Paper } from '@mui/material';
 import {
-  createBrowserRouter, RouterProvider, Outlet, useParams, Navigate,
+  CircularProgress,
+  Grid,
+  Paper,
+  Typography,
+} from '@mui/material';
+import {
+  createBrowserRouter,
+  RouterProvider,
+  Outlet,
+  useParams,
+  Navigate,
+  useLocation,
+  useNavigate,
+  useOutletContext,
 } from 'react-router-dom';
 
 import './styles/main.css';
@@ -11,6 +24,8 @@ import TopBar from './components/TopBar';
 import UserDetail from './components/UserDetail';
 import UserList from './components/UserList';
 import UserPhotos from './components/UserPhotos';
+import LoginRegister from './components/LoginRegister';
+import { getCurrentUser, logoutUser } from './lib/api';
 
 function Home() {
   return (
@@ -48,26 +63,91 @@ function UserPhotosRoute() {
 }
 
 function Root() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadCurrentUser() {
+      try {
+        const user = await getCurrentUser();
+        if (!ignore) {
+          setCurrentUser(user);
+        }
+      } catch (err) {
+        if (!ignore) {
+          setCurrentUser(null);
+        }
+      } finally {
+        if (!ignore) {
+          setAuthLoading(false);
+        }
+      }
+    }
+
+    loadCurrentUser();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  async function handleLogout() {
+    try {
+      await logoutUser();
+    } finally {
+      setCurrentUser(null);
+      navigate('/login-register', { replace: true });
+    }
+  }
+
+  if (authLoading) {
+    return (
+      <div className="main-loading">
+        <CircularProgress size={36} />
+      </div>
+    );
+  }
+
+  if (!currentUser && location.pathname !== '/login-register') {
+    return <Navigate to="/login-register" replace />;
+  }
+
+  if (currentUser && location.pathname === '/login-register') {
+    return <Navigate to={`/users/${currentUser._id}`} replace />;
+  }
+
   return (
     <div>
       <Grid container spacing={2}>
         <Grid item xs={12}>
-          <TopBar />
+          <TopBar currentUser={currentUser} onLogout={handleLogout} />
         </Grid>
         <div className="main-topbar-buffer" />
-        <Grid item sm={3}>
+        {currentUser ? (
+          <Grid item sm={3}>
+            <Paper className="main-grid-item">
+              <UserList />
+            </Paper>
+          </Grid>
+        ) : null}
+        <Grid item sm={currentUser ? 9 : 12}>
           <Paper className="main-grid-item">
-            <UserList />
-          </Paper>
-        </Grid>
-        <Grid item sm={9}>
-          <Paper className="main-grid-item">
-            <Outlet />
+            <Outlet context={{ currentUser, setCurrentUser }} />
           </Paper>
         </Grid>
       </Grid>
     </div>
   );
+}
+
+function LoginRegisterRoute() {
+  const { setCurrentUser } = useOutletContext();
+
+  return <LoginRegister onAuthChange={setCurrentUser} />;
 }
 
 function UserLayout() {
@@ -84,6 +164,7 @@ const router = createBrowserRouter([
     element: <Root />,
     children: [
       { index: true, element: <Home /> },
+      { path: 'login-register', element: <LoginRegisterRoute /> },
 
       { path: 'users', element: <UserList /> },
 
