@@ -1,6 +1,7 @@
+/* eslint-disable camelcase, import/extensions, import/no-relative-packages */
 /* global describe, it */
 /**
- * Mocha test of Project 2 web API.  To run type
+ * Mocha test of Project 3 web API with login functionality. Run using this command:
  *   node_modules/.bin/mocha serverApiTest.js
  */
 
@@ -10,11 +11,13 @@ import http from 'http';
 import async from 'async';
 import _ from 'lodash';
 import fs from 'fs';
-// eslint-disable-next-line import/extensions, import/no-relative-packages
 import models from '../modelData/photoApp.js';
 
 const port = 3001;
 const host = 'localhost';
+
+/** Plaintext for seeded users; matches bcrypt digest in loadDatabase.js */
+const SEEDED_LOGIN_PASSWORD = 'password';
 
 // Valid properties of a user list model
 const userListProperties = ['first_name', 'last_name', '_id'];
@@ -38,25 +41,76 @@ function assertEqualDates(d1, d2) {
 
 /**
  * MongoDB automatically adds some properties to our models. We allow these to
- * appear by removing them when before checking for invalid properties.  This
- * way the models are permitted but not required to have these properties.
+ * appear by removing them when before checking for invalid properties. This way
+ * the models are permitted but not required to have these properties.
  */
 function removeMongoProperties(model) {
   return model;
 }
 
-describe('Photo App: Web API Tests', () => {
+describe('Photo App: Server API Tests', () => {
+  let authCookie; // Session cookie from login request
+
   describe('test using model data', () => {
-    it('webServer does not use model data', (done) => {
+    it('webServer does not import model data', (done) => {
       fs.readFile('../webServer.js', (err, data) => {
         if (err) throw err;
-        const regex = /\n\s*const models = require\('\.\/modelData\/photoApp\.js'\)\.models;/g;
+        const src = data.toString();
         assert(
-          !data.toString().match(regex),
-          'webServer still contains reference to models.',
+          !src.includes('modelData/photoApp'),
+          'webServer must not import modelData/photoApp.js',
         );
         done();
       });
+    });
+  });
+
+  describe('login the user took', () => {
+    it('can login took with a post to /admin/login', (done) => {
+      const postBody = JSON.stringify({
+        login_name: 'took',
+        password: SEEDED_LOGIN_PASSWORD,
+      });
+
+      const options = {
+        hostname: host,
+        port,
+        path: '/admin/login',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': postBody.length,
+        },
+      };
+
+      const request = http.request(options, (response) => {
+        response.on('data', () => {});
+
+        response.on('end', () => {
+          assert.strictEqual(
+            response.statusCode,
+            200,
+            'HTTP response status code not OK',
+          );
+          // If express-session middleware was enabled we should have a
+          // 'set-cookie' response header with the Express session cookie. We
+          // assume it will be the first (and only) cookie.
+          authCookie = response.headers['set-cookie'] && response.headers['set-cookie'][0];
+          done();
+        });
+      });
+
+      request.write(postBody);
+      request.end();
+    });
+
+    it('can retrieve the Express session cookie', (done) => {
+      assert(authCookie, 'found a session cookie in the login POST response');
+      assert(
+        authCookie.match(/^connect\.sid=/),
+        'looks like an Express cookie',
+      );
+      done();
     });
   });
 
@@ -70,6 +124,7 @@ describe('Photo App: Web API Tests', () => {
           hostname: host,
           port,
           path: '/user/list',
+          headers: { Cookie: authCookie },
         },
         (response) => {
           let responseBody = '';
@@ -90,12 +145,18 @@ describe('Photo App: Web API Tests', () => {
       );
     });
 
-    it('is an array', () => {
+    it('is an array', (done) => {
       assert(Array.isArray(userList));
+      done();
     });
 
-    it('has the correct number elements', () => {
-      assert.strictEqual(userList.length, Users.length);
+    it('has the correct number elements', (done) => {
+      assert.strictEqual(
+        userList.length,
+        Users.length,
+        'Wrong number of users. Did you forget to run loadDatabase.js?',
+      );
+      done();
     });
 
     it('has an entry for each of the users', (done) => {
@@ -144,6 +205,7 @@ describe('Photo App: Web API Tests', () => {
           hostname: host,
           port,
           path: '/user/list',
+          headers: { Cookie: authCookie },
         },
         (response) => {
           let responseBody = '';
@@ -179,12 +241,14 @@ describe('Photo App: Web API Tests', () => {
             } ${
               realUser.last_name}`,
           );
+          let userInfo;
           const id = user._id;
           http.get(
             {
               hostname: host,
               port,
               path: `/user/${id}`,
+              headers: { Cookie: authCookie },
             },
             (response) => {
               let responseBody = '';
@@ -193,7 +257,7 @@ describe('Photo App: Web API Tests', () => {
               });
 
               response.on('end', () => {
-                const userInfo = JSON.parse(responseBody);
+                userInfo = JSON.parse(responseBody);
                 assert.strictEqual(userInfo._id, id);
                 assert.strictEqual(userInfo.first_name, realUser.first_name);
                 assert.strictEqual(userInfo.last_name, realUser.last_name);
@@ -225,6 +289,7 @@ describe('Photo App: Web API Tests', () => {
           hostname: host,
           port,
           path: '/user/1',
+          headers: { Cookie: authCookie },
         },
         (response) => {
           response.on('data', () => {});
@@ -252,6 +317,7 @@ describe('Photo App: Web API Tests', () => {
           hostname: host,
           port,
           path: '/user/list',
+          headers: { Cookie: authCookie },
         },
         (response) => {
           let responseBody = '';
@@ -295,6 +361,7 @@ describe('Photo App: Web API Tests', () => {
               hostname: host,
               port,
               path: `/photosOfUser/${id}`,
+              headers: { Cookie: authCookie },
             },
             (response) => {
               let responseBody = '';
@@ -313,21 +380,21 @@ describe('Photo App: Web API Tests', () => {
                 );
                 photos = JSON.parse(responseBody);
 
-                const realPhotos = models.photoOfUserModel(realUser._id);
+                const real_photos = models.photoOfUserModel(realUser._id);
 
                 assert.strictEqual(
-                  realPhotos.length,
+                  real_photos.length,
                   photos.length,
                   'wrong number of photos returned',
                 );
-                _.forEach(realPhotos, (realPhoto) => {
+                _.forEach(real_photos, (real_photo) => {
                   const matches = _.filter(photos, {
-                    file_name: realPhoto.file_name,
+                    file_name: real_photo.file_name,
                   });
                   assert.strictEqual(
                     matches.length,
                     1,
-                    ` looking for photo ${realPhoto.file_name}`,
+                    ` looking for photo ${real_photo.file_name}`,
                   );
                   const photo = matches[0];
                   const extraProps1 = _.difference(
@@ -340,19 +407,19 @@ describe('Photo App: Web API Tests', () => {
                     `photo object has extra properties: ${extraProps1}`,
                   );
                   assert.strictEqual(photo.user_id, id);
-                  assertEqualDates(photo.date_time, realPhoto.date_time);
-                  assert.strictEqual(photo.file_name, realPhoto.file_name);
+                  assertEqualDates(photo.date_time, real_photo.date_time);
+                  assert.strictEqual(photo.file_name, real_photo.file_name);
 
-                  if (realPhoto.comments) {
+                  if (real_photo.comments) {
                     assert.strictEqual(
                       photo.comments.length,
-                      realPhoto.comments.length,
-                      `comments on photo ${realPhoto.file_name}`,
+                      real_photo.comments.length,
+                      `comments on photo ${real_photo.file_name}`,
                     );
 
-                    _.forEach(realPhoto.comments, (realComment) => {
+                    _.forEach(real_photo.comments, (real_comment) => {
                       const comment = _.find(photo.comments, {
-                        comment: realComment.comment,
+                        comment: real_comment.comment,
                       });
                       assert(comment);
                       const extraProps2 = _.difference(
@@ -366,7 +433,7 @@ describe('Photo App: Web API Tests', () => {
                       );
                       assertEqualDates(
                         comment.date_time,
-                        realComment.date_time,
+                        real_comment.date_time,
                       );
 
                       const extraProps3 = _.difference(
@@ -381,11 +448,11 @@ describe('Photo App: Web API Tests', () => {
                       );
                       assert.strictEqual(
                         comment.user.first_name,
-                        realComment.user.first_name,
+                        real_comment.user.first_name,
                       );
                       assert.strictEqual(
                         comment.user.last_name,
-                        realComment.user.last_name,
+                        real_comment.user.last_name,
                       );
                     });
                   } else {
@@ -409,6 +476,7 @@ describe('Photo App: Web API Tests', () => {
           hostname: host,
           port,
           path: '/photosOfUser/1',
+          headers: { Cookie: authCookie },
         },
         (response) => {
           response.on('data', () => {});

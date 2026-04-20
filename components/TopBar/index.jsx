@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import PropTypes from 'prop-types';
 import {
   AppBar,
   Box,
+  Button,
   CircularProgress,
   Toolbar,
   Typography,
@@ -12,9 +15,9 @@ import api from '../../lib/api';
 
 import './styles.css';
 
-function TopBar() {
+function TopBar({ currentUser, onLogout }) {
   const location = useLocation();
-  const [title, setTitle] = useState('Browse the photo collection');
+  const [title, setTitle] = useState('Photo Share');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -23,6 +26,12 @@ function TopBar() {
     async function resolveTitle() {
       const photoMatch = matchPath('/users/:userId/photos', location.pathname);
       const detailMatch = matchPath('/users/:userId', location.pathname);
+
+      if (!currentUser) {
+        setLoading(false);
+        setTitle('Photo Share');
+        return;
+      }
 
       if (photoMatch || detailMatch) {
         setLoading(true);
@@ -54,7 +63,7 @@ function TopBar() {
     return () => {
       ignore = true;
     };
-  }, [location.pathname]);
+  }, [currentUser, location.pathname]);
 
   return (
     <AppBar className="topbar-appBar" position="absolute">
@@ -67,9 +76,28 @@ function TopBar() {
         <Typography className="topbar-context" variant="h6" color="inherit">
           {title}
         </Typography>
+        {currentUser ? (
+          <>
+            <Typography className="topbar-greeting" variant="body1" color="inherit">
+              Hi
+              {' '}
+              {currentUser.first_name}
+            </Typography>
+            <Button color="inherit" onClick={onLogout}>
+              Logout
+            </Button>
+          </>
+        ) : null}
       </Toolbar>
     </AppBar>
   );
 }
+
+TopBar.propTypes = {
+  currentUser: PropTypes.shape({
+    first_name: PropTypes.string.isRequired,
+  }),
+  onLogout: PropTypes.func.isRequired,
+};
 
 export default TopBar;

@@ -1,38 +1,33 @@
-/* eslint-disable no-console */
+/* eslint-disable import/extensions, no-console, no-param-reassign */
 /**
- * Loads the Project 2 demo data into MongoDB using Mongoose.
+ * Loads Project 3 demo data into MongoDB using Mongoose.
  * Run: node loadDatabase.js (MongoDB must be running locally)
  *
- * Loads into the MongoDB database named 'project2'.
- * Collections affected: User, Photo, SchemaInfo. Existing data is cleared.
+ * Database: project3. Collections: User, Photo, SchemaInfo (cleared first).
  *
- * Uses Promises for async DB calls.
+ * Each user gets login_name = lowercase last_name and password_digest set to
+ * the instructor-supplied bcrypt hash (plaintext for login is "password"; see README).
  */
 
-// We use the Mongoose to define the schema stored in MongoDB.
 // eslint-disable-next-line import/no-extraneous-dependencies
 import mongoose from 'mongoose';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import bluebird from 'bluebird';
-// eslint-disable-next-line import/extensions
 import models from './modelData/photoApp.js';
-
-// Load the Mongoose schema for Use and Photo
-// eslint-disable-next-line import/extensions
 import User from './schema/user.js';
-// eslint-disable-next-line import/extensions
 import Photo from './schema/photo.js';
-// eslint-disable-next-line import/extensions
 import SchemaInfo from './schema/schemaInfo.js';
+
+/** Bcrypt digest for seeded accounts; bcrypt.compare("password", ...) is true. */
+const SEEDED_PASSWORD_DIGEST = '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi';
 
 mongoose.Promise = bluebird;
 mongoose.set('strictQuery', false);
-mongoose.connect('mongodb://127.0.0.1/project2', {
+mongoose.connect('mongodb://127.0.0.1/project3', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
 
-// We start by removing anything that existing in the collections.
 const removePromises = [
   User.deleteMany({}),
   Photo.deleteMany({}),
@@ -41,32 +36,26 @@ const removePromises = [
 
 Promise.all(removePromises)
   .then(() => {
-    // Load the users into the User. Mongo assigns ids to objects so we record
-    // the assigned '_id' back into the model.userListModels so we have it
-    // later in the script.
-
     const userModels = models.userListModel();
     const mapFakeId2RealId = {};
-    const userObjectIds = {};
     const userPromises = userModels.map((user) => User.create({
       first_name: user.first_name,
       last_name: user.last_name,
       location: user.location,
       description: user.description,
       occupation: user.occupation,
+      login_name: user.last_name.toLowerCase(),
+      password_digest: SEEDED_PASSWORD_DIGEST,
     })
       .then((userObj) => {
-        // Set the unique ID of the object. We use the MongoDB generated _id
-        // for now but we keep it distinct from the MongoDB ID so we can go to
-        // something prettier in the future since these show up in URLs, etc.
         userObj.save();
         mapFakeId2RealId[user._id] = userObj._id;
-        userObjectIds[user._id] = userObj._id;
+        user.objectID = userObj._id;
         console.log(
           'Adding user:',
           `${user.first_name} ${user.last_name}`,
           ' with ID ',
-          userObj._id,
+          user.objectID,
         );
       })
       .catch((err) => {
@@ -74,9 +63,6 @@ Promise.all(removePromises)
       }));
 
     const allPromises = Promise.all(userPromises).then(() => {
-      // Once we've loaded all the users into the User collection we add all the
-      // photos. Note that the user_id of the photo is the MongoDB assigned id
-      // in the User object.
       const photoModels = [];
       const userIDs = Object.keys(mapFakeId2RealId);
       userIDs.forEach((id) => {
@@ -89,17 +75,20 @@ Promise.all(removePromises)
         user_id: mapFakeId2RealId[photo.user_id],
       })
         .then((photoObj) => {
+          photo.objectID = photoObj._id;
           if (photo.comments) {
             photo.comments.forEach((comment) => {
-              photoObj.comments.push({
-                comment: comment.comment,
-                date_time: comment.date_time,
-                user_id: userObjectIds[comment.user._id],
-              });
+              photoObj.comments = photoObj.comments.concat([
+                {
+                  comment: comment.comment,
+                  date_time: comment.date_time,
+                  user_id: comment.user.objectID,
+                },
+              ]);
               console.log(
                 'Adding comment of length %d by user %s to photo %s',
                 comment.comment.length,
-                userObjectIds[comment.user._id],
+                comment.user.objectID,
                 photo.file_name,
               );
             });
@@ -113,18 +102,15 @@ Promise.all(removePromises)
           );
         })
         .catch((err) => {
-          console.error('Error create user', err);
+          console.error('Error create photo', err);
         }));
-      return Promise.all(photoPromises).then(() => (
-        // Create a single SchemaInfo document (no version field required)
-        SchemaInfo.create(models.schemaInfo2())
-          .then(() => {
-            console.log('SchemaInfo object created');
-          })
-          .catch((err) => {
-            console.error('Error create schemaInfo', err);
-          })
-      ));
+      return Promise.all(photoPromises).then(() => SchemaInfo.create(models.schemaInfo2())
+        .then(() => {
+          console.log('SchemaInfo object created');
+        })
+        .catch((err) => {
+          console.error('Error create schemaInfo', err);
+        }));
     });
 
     allPromises.then(() => {
@@ -132,5 +118,5 @@ Promise.all(removePromises)
     });
   })
   .catch((err) => {
-    console.error('Error create schemaInfo', err);
+    console.error('Error clearing collections', err);
   });

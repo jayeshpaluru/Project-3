@@ -12,4 +12,12 @@
 .main-grid-item{
   height: calc(100vh - 64px);
   padding: 10px;
+  overflow: auto;
+}
+
+.main-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
 }
