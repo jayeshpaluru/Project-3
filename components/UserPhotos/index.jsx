@@ -51,7 +51,7 @@ function UserPhotos({ userId: userIdProp }) {
   }
 
   if (error) {
-    return <Alert severity="error">{error}</Alert>;
+    return <Alert severity="error">Unable to load photos for this user.</Alert>;
   }
 
   if (photos.length === 0) {
