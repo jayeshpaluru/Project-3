@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import PropTypes from 'prop-types';
 import {
@@ -19,40 +20,11 @@ import './styles.css';
 function UserDetail({ userId: userIdProp }) {
   const { userId: userIdParam } = useParams();
   const userId = userIdProp || userIdParam;
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
-  useEffect(() => {
-    let ignore = false;
-
-    async function loadUser() {
-      setLoading(true);
-      setError('');
-
-      try {
-        const response = await api.get(`/user/${userId}`);
-        if (!ignore) {
-          setUser(response.data);
-        }
-      } catch (err) {
-        if (!ignore) {
-          setUser(null);
-          setError('Unable to load this user.');
-        }
-      } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadUser();
-
-    return () => {
-      ignore = true;
-    };
-  }, [userId]);
+  const { data: user, isLoading: loading, error } = useQuery({
+    queryKey: ['user', userId],
+    queryFn: () => api.get(`/user/${userId}`).then((res) => res.data),
+  });
 
   if (loading) {
     return (
@@ -63,7 +35,7 @@ function UserDetail({ userId: userIdProp }) {
   }
 
   if (error) {
-    return <Alert severity="error">{error}</Alert>;
+    return <Alert severity="error">Unable to load this user.</Alert>;
   }
 
   if (!user) {

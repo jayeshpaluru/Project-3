@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Divider,
   List,
@@ -17,39 +18,11 @@ import './styles.css';
 
 function UserList() {
   const location = useLocation();
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
-  useEffect(() => {
-    let ignore = false;
-
-    async function loadUsers() {
-      setLoading(true);
-      setError('');
-
-      try {
-        const response = await api.get('/user/list');
-        if (!ignore) {
-          setUsers(response.data);
-        }
-      } catch (err) {
-        if (!ignore) {
-          setError('Unable to load users.');
-        }
-      } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadUsers();
-
-    return () => {
-      ignore = true;
-    };
-  }, []);
+  const { data: users = [], isLoading: loading, error } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => api.get('/user/list').then((res) => res.data),
+  });
 
   if (loading) {
     return (
@@ -60,7 +33,7 @@ function UserList() {
   }
 
   if (error) {
-    return <Alert severity="error">{error}</Alert>;
+    return <Alert severity="error">Unable to load users.</Alert>;
   }
 
   if (users.length === 0) {

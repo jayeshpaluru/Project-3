@@ -1,7 +1,7 @@
 /* eslint-disable react/jsx-no-bind */
 import React, { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import PropTypes from 'prop-types';
 import {
   Alert,
   Box,
@@ -37,14 +37,10 @@ const initialRegisterForm = {
   occupation: '',
 };
 
-function LoginRegister({ onAuthChange }) {
+function LoginRegister() {
   const navigate = useNavigate();
   const [loginForm, setLoginForm] = useState(initialLoginForm);
   const [registerForm, setRegisterForm] = useState(initialRegisterForm);
-  const [loginError, setLoginError] = useState('');
-  const [registerError, setRegisterError] = useState('');
-  const [loginSubmitting, setLoginSubmitting] = useState(false);
-  const [registerSubmitting, setRegisterSubmitting] = useState(false);
 
   function updateLoginField(event) {
     setLoginForm((currentForm) => ({
@@ -60,41 +56,29 @@ function LoginRegister({ onAuthChange }) {
     }));
   }
 
-  async function handleLogin(event) {
-    event.preventDefault();
-    setLoginSubmitting(true);
-    setLoginError('');
+  const queryClient = useQueryClient();
 
-    try {
-      const user = await loginUser(loginForm);
-      onAuthChange(user);
-      navigate(`/users/${user._id}`, { replace: true });
-    } catch (err) {
-      setLoginError(getApiErrorMessage(err, 'Login failed.'));
-    } finally {
-      setLoginSubmitting(false);
-    }
-  }
+  const loginMutation = useMutation({
+    mutationFn: loginUser,
+    onSuccess: (user) => {
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      navigate(`/users/${user._id}`);
+    },
+  });
 
-  async function handleRegister(event) {
-    event.preventDefault();
-    setRegisterSubmitting(true);
-    setRegisterError('');
-
-    try {
-      await registerUser(registerForm);
-      const user = await loginUser({
-        login_name: registerForm.login_name,
-        password: registerForm.password,
+  const registerMutation = useMutation({
+    mutationFn: async (regForm) => {
+      await registerUser(regForm);
+      return loginUser({
+        login_name: regForm.login_name,
+        password: regForm.password,
       });
-      onAuthChange(user);
-      navigate(`/users/${user._id}`, { replace: true });
-    } catch (err) {
-      setRegisterError(getApiErrorMessage(err, 'Registration failed.'));
-    } finally {
-      setRegisterSubmitting(false);
-    }
-  }
+    },
+    onSuccess: (user) => {
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      navigate(`/users/${user._id}`);
+    },
+  });
 
   return (
     <Box className="login-register">
@@ -107,9 +91,9 @@ function LoginRegister({ onAuthChange }) {
 
       <Grid container spacing={4} className="login-register-grid">
         <Grid item xs={12} md={5}>
-          <Stack component="form" spacing={2} onSubmit={handleLogin}>
+          <Stack component="form" spacing={2} onSubmit={(event) => { event.preventDefault(); loginMutation.mutate(loginForm); }}>
             <Typography variant="h5">Login</Typography>
-            {loginError ? <Alert severity="error">{loginError}</Alert> : null}
+            {loginMutation.isError ? <Alert severity="error">{getApiErrorMessage(loginMutation.error, 'Login failed.')}</Alert> : null}
             <TextField
               label="Login name"
               name="login_name"
@@ -126,11 +110,11 @@ function LoginRegister({ onAuthChange }) {
               value={loginForm.password}
             />
             <Button
-              disabled={loginSubmitting}
+              disabled={loginMutation.isLoading}
               type="submit"
               variant="contained"
             >
-              {loginSubmitting ? 'Logging in...' : 'Login'}
+              {loginMutation.isLoading ? 'Logging in...' : 'Login'}
             </Button>
           </Stack>
         </Grid>
@@ -140,9 +124,9 @@ function LoginRegister({ onAuthChange }) {
         </Grid>
 
         <Grid item xs={12} md={6}>
-          <Stack component="form" spacing={2} onSubmit={handleRegister}>
+          <Stack component="form" spacing={2} onSubmit={(event) => { event.preventDefault(); registerMutation.mutate(registerForm); }}>
             <Typography variant="h5">Register</Typography>
-            {registerError ? <Alert severity="error">{registerError}</Alert> : null}
+            {registerMutation.isError ? <Alert severity="error">{getApiErrorMessage(registerMutation.error, 'Registration failed.')}</Alert> : null}
             <TextField
               label="Login name"
               name="login_name"
@@ -201,11 +185,11 @@ function LoginRegister({ onAuthChange }) {
               value={registerForm.occupation}
             />
             <Button
-              disabled={registerSubmitting}
+              disabled={registerMutation.isLoading}
               type="submit"
               variant="contained"
             >
-              {registerSubmitting ? 'Creating account...' : 'Register'}
+              {registerMutation.isLoading ? 'Creating account...' : 'Register'}
             </Button>
           </Stack>
         </Grid>
@@ -213,9 +197,5 @@ function LoginRegister({ onAuthChange }) {
     </Box>
   );
 }
-
-LoginRegister.propTypes = {
-  onAuthChange: PropTypes.func.isRequired,
-};
 
 export default LoginRegister;
