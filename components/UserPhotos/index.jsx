@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import PropTypes from 'prop-types';
 import {
@@ -35,40 +36,11 @@ function formatDateTime(value) {
 function UserPhotos({ userId: userIdProp }) {
   const { userId: userIdParam } = useParams();
   const userId = userIdProp || userIdParam;
-  const [photos, setPhotos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
-  useEffect(() => {
-    let ignore = false;
-
-    async function loadPhotos() {
-      setLoading(true);
-      setError('');
-
-      try {
-        const response = await api.get(`/photosOfUser/${userId}`);
-        if (!ignore) {
-          setPhotos(response.data);
-        }
-      } catch (err) {
-        if (!ignore) {
-          setPhotos([]);
-          setError('Unable to load photos for this user.');
-        }
-      } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadPhotos();
-
-    return () => {
-      ignore = true;
-    };
-  }, [userId]);
+  const { data: photos = [], isLoading: loading, error } = useQuery({
+    queryKey: ['photos', userId],
+    queryFn: () => api.get(`/photosOfUser/${userId}`).then((res) => res.data),
+  });
 
   if (loading) {
     return (
@@ -79,7 +51,7 @@ function UserPhotos({ userId: userIdProp }) {
   }
 
   if (error) {
-    return <Alert severity="error">{error}</Alert>;
+    return <Alert severity="error">Unable to load photos for this user.</Alert>;
   }
 
   if (photos.length === 0) {

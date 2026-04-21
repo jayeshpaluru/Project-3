@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import PropTypes from 'prop-types';
 import {
@@ -17,53 +18,30 @@ import './styles.css';
 
 function TopBar({ currentUser, onLogout }) {
   const location = useLocation();
-  const [title, setTitle] = useState('Photo Share');
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    let ignore = false;
+  const photoMatch = matchPath('/users/:userId/photos', location.pathname);
+  const detailMatch = matchPath('/users/:userId', location.pathname);
+  const matchedUserId = photoMatch?.params.userId || detailMatch?.params.userId;
 
-    async function resolveTitle() {
-      const photoMatch = matchPath('/users/:userId/photos', location.pathname);
-      const detailMatch = matchPath('/users/:userId', location.pathname);
+  const { data: user, isLoading: loading } = useQuery({
+    queryKey: ['user', matchedUserId],
+    queryFn: () => api.get(`/user/${matchedUserId}`).then((res) => res.data),
+    enabled: !!matchedUserId,
+  });
 
-      if (!currentUser) {
-        setLoading(false);
-        setTitle('Photo Share');
-        return;
+  let title = 'Photo Share';
+  if (currentUser) {
+    if (matchedUserId) {
+      if (user) {
+        const fullName = `${user.first_name} ${user.last_name}`;
+        title = photoMatch ? `Photos of ${fullName}` : fullName;
+      } else if (!loading) {
+        title = 'User not found';
+      } else {
+        title = location.pathname === '/users' ? 'Users' : 'Browse the photo collection';
       }
-
-      if (photoMatch || detailMatch) {
-        setLoading(true);
-        try {
-          const matchedUserId = photoMatch?.params.userId || detailMatch?.params.userId;
-          const response = await api.get(`/user/${matchedUserId}`);
-          if (!ignore) {
-            const fullName = `${response.data.first_name} ${response.data.last_name}`;
-            setTitle(photoMatch ? `Photos of ${fullName}` : fullName);
-          }
-        } catch (err) {
-          if (!ignore) {
-            setTitle('User not found');
-          }
-        } finally {
-          if (!ignore) {
-            setLoading(false);
-          }
-        }
-        return;
-      }
-
-      setLoading(false);
-      setTitle(location.pathname === '/users' ? 'Users' : 'Browse the photo collection');
     }
-
-    resolveTitle();
-
-    return () => {
-      ignore = true;
-    };
-  }, [currentUser, location.pathname]);
+  }
 
   return (
     <AppBar className="topbar-appBar" position="absolute">

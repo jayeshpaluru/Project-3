@@ -1,5 +1,11 @@
 /* eslint-disable react/jsx-no-bind */
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+  useMutation,
+} from '@tanstack/react-query';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import ReactDOM from 'react-dom/client';
 import {
@@ -16,7 +22,6 @@ import {
   Navigate,
   useLocation,
   useNavigate,
-  useOutletContext,
 } from 'react-router-dom';
 
 import './styles/main.css';
@@ -26,6 +31,9 @@ import UserList from './components/UserList';
 import UserPhotos from './components/UserPhotos';
 import LoginRegister from './components/LoginRegister';
 import { getCurrentUser, logoutUser } from './lib/api';
+
+// create instance of queryClient
+const queryClient = new QueryClient();
 
 function Home() {
   return (
@@ -65,44 +73,19 @@ function UserPhotosRoute() {
 function Root() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [currentUser, setCurrentUser] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
 
-  useEffect(() => {
-    let ignore = false;
+  const { data: currentUser, isLoading: authLoading } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => getCurrentUser(),
+  });
 
-    async function loadCurrentUser() {
-      try {
-        const user = await getCurrentUser();
-        if (!ignore) {
-          setCurrentUser(user);
-        }
-      } catch (err) {
-        if (!ignore) {
-          setCurrentUser(null);
-        }
-      } finally {
-        if (!ignore) {
-          setAuthLoading(false);
-        }
-      }
-    }
-
-    loadCurrentUser();
-
-    return () => {
-      ignore = true;
-    };
-  }, []);
-
-  async function handleLogout() {
-    try {
-      await logoutUser();
-    } finally {
-      setCurrentUser(null);
-      navigate('/login-register', { replace: true });
-    }
-  }
+  const logoutMutation = useMutation({
+    mutationFn: logoutUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      navigate('/login-register');
+    },
+  });
 
   if (authLoading) {
     return (
@@ -124,7 +107,7 @@ function Root() {
     <div>
       <Grid container spacing={2}>
         <Grid item xs={12}>
-          <TopBar currentUser={currentUser} onLogout={handleLogout} />
+          <TopBar currentUser={currentUser} onLogout={logoutMutation.mutate} />
         </Grid>
         <div className="main-topbar-buffer" />
         {currentUser ? (
@@ -136,7 +119,7 @@ function Root() {
         ) : null}
         <Grid item sm={currentUser ? 9 : 12}>
           <Paper className="main-grid-item">
-            <Outlet context={{ currentUser, setCurrentUser }} />
+            <Outlet context={{ currentUser }} />
           </Paper>
         </Grid>
       </Grid>
@@ -145,9 +128,7 @@ function Root() {
 }
 
 function LoginRegisterRoute() {
-  const { setCurrentUser } = useOutletContext();
-
-  return <LoginRegister onAuthChange={setCurrentUser} />;
+  return <LoginRegister />;
 }
 
 function UserLayout() {
@@ -181,4 +162,8 @@ const router = createBrowserRouter([
 ]);
 
 const root = ReactDOM.createRoot(document.getElementById('photoshareapp'));
-root.render(<RouterProvider router={router} />);
+root.render(
+  <QueryClientProvider client={queryClient}>
+    <RouterProvider router={router} />
+  </QueryClientProvider>,
+);
