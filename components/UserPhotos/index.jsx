@@ -1,5 +1,5 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import PropTypes from 'prop-types';
 import {
@@ -14,10 +14,12 @@ import {
   ListItem,
   Stack,
   Typography,
+  TextField,
+  Button,
 } from '@mui/material';
 import { Link as RouterLink, useParams } from 'react-router-dom';
 
-import api from '../../lib/api';
+import api, { addComment, getApiErrorMessage } from '../../lib/api';
 
 import './styles.css';
 
@@ -37,10 +39,39 @@ function UserPhotos({ userId: userIdProp }) {
   const { userId: userIdParam } = useParams();
   const userId = userIdProp || userIdParam;
 
+  const [commentTexts, setCommentTexts] = useState({});
+  const [commentErrors, setCommentErrors] = useState({});
+
   const { data: photos = [], isLoading: loading, error } = useQuery({
     queryKey: ['photos', userId],
     queryFn: () => api.get(`/photosOfUser/${userId}`).then((res) => res.data),
   });
+
+  const queryClient = useQueryClient();
+
+  const addCommentMutation = useMutation({
+    mutationFn: addComment,
+    onSuccess: (_, { photoId }) => {
+      queryClient.invalidateQueries({ queryKey: ['photos', userId] });
+      const updateComments = { ...commentTexts, [photoId]: '' };
+      setCommentTexts(updateComments);
+      const updateErrors = { ...commentErrors, [photoId]: '' };
+      setCommentErrors(updateErrors);
+    },
+    onError: (err, { photoId }) => {
+      const updateErrors = { ...commentErrors, [photoId]: getApiErrorMessage(err) };
+      setCommentErrors(updateErrors);
+    },
+  });
+
+  function handleSubmit(photoId) {
+    addCommentMutation.mutate({ photoId, comment: commentTexts[photoId] });
+  }
+
+  function handleAddComment(photoId, newComment) {
+    const updateComments = { ...commentTexts, [photoId]: newComment };
+    setCommentTexts(updateComments);
+  }
 
   if (loading) {
     return (
@@ -119,6 +150,26 @@ function UserPhotos({ userId: userIdProp }) {
                   </Typography>
                 )}
               </Box>
+
+              <Divider />
+
+              <Box>
+                <TextField
+                  placeholder="Add a comment..."
+                  multiline
+                  value={commentTexts[photo._id]}
+                  onChange={(event) => handleAddComment(photo._id, event.target.value)}
+                />
+                <Button onClick={() => handleSubmit(photo._id)}>
+                  Submit
+                </Button>
+                {commentErrors[photo._id] && (
+                  <Alert severity="error">
+                    {commentErrors[photo._id]}
+                  </Alert>
+                )}
+              </Box>
+
             </Stack>
           </CardContent>
         </Card>
