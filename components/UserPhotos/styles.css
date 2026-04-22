@@ -11,8 +11,15 @@
 }
 
 .user-photo-comment {
-  padding: 8px 0;
-  border-top: 1px solid #ececec;
+  padding: 10px 14px;
+  border: 1px solid #ececec;
+  border-radius: 10px;
+  background: #fafafa;
+}
+
+.user-photo-comments-list {
+  display: grid;
+  gap: 10px;
 }
 
 .user-photo-comment-link {
@@ -24,4 +31,28 @@
 
 .user-photo-comment-link:hover {
   text-decoration: underline;
+}
+
+.user-photo-comment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #ececec;
+  border-radius: 12px;
+  background: #fcfcfc;
+}
+
+.user-photo-comment-input .MuiOutlinedInput-root {
+  align-items: flex-start;
+  background: #fff;
+}
+
+.user-photo-comment-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.user-photo-comment-error {
+  margin-top: 2px;
 }
