@@ -116,7 +116,7 @@ function UserPhotos({ userId: userIdProp }) {
                   Comments
                 </Typography>
                 {photo.comments?.length ? (
-                  <List disablePadding>
+                  <List className="user-photo-comments-list" disablePadding>
                     {photo.comments.map((comment) => (
                       <ListItem
                         key={comment._id}
@@ -153,18 +153,27 @@ function UserPhotos({ userId: userIdProp }) {
 
               <Divider />
 
-              <Box>
+              <Box className="user-photo-comment-form">
                 <TextField
+                  className="user-photo-comment-input"
                   placeholder="Add a comment..."
+                  fullWidth
                   multiline
+                  minRows={2}
                   value={commentTexts[photo._id]}
                   onChange={(event) => handleAddComment(photo._id, event.target.value)}
                 />
-                <Button onClick={() => handleSubmit(photo._id)}>
-                  Submit
-                </Button>
+                <Box className="user-photo-comment-actions">
+                  <Button
+                    disabled={addCommentMutation.isPending}
+                    onClick={() => handleSubmit(photo._id)}
+                    variant="contained"
+                  >
+                    {addCommentMutation.isPending ? 'Posting...' : 'Post comment'}
+                  </Button>
+                </Box>
                 {commentErrors[photo._id] && (
-                  <Alert severity="error">
+                  <Alert className="user-photo-comment-error" severity="error">
                     {commentErrors[photo._id]}
                   </Alert>
                 )}

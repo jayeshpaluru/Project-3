@@ -62,6 +62,7 @@ function LoginRegister() {
     mutationFn: loginUser,
     onSuccess: (user) => {
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
       navigate(`/users/${user._id}`);
     },
   });
@@ -76,6 +77,8 @@ function LoginRegister() {
     },
     onSuccess: (user) => {
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['user', user._id] });
       navigate(`/users/${user._id}`);
     },
   });

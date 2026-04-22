@@ -5,6 +5,7 @@ import {
   QueryClientProvider,
   useQuery,
   useMutation,
+  useQueryClient,
 } from '@tanstack/react-query';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import ReactDOM from 'react-dom/client';
@@ -73,6 +74,7 @@ function UserPhotosRoute() {
 function Root() {
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClientInstance = useQueryClient();
 
   const { data: currentUser, isLoading: authLoading } = useQuery({
     queryKey: ['currentUser'],
@@ -82,7 +84,10 @@ function Root() {
   const logoutMutation = useMutation({
     mutationFn: logoutUser,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      queryClientInstance.invalidateQueries({ queryKey: ['currentUser'] });
+      queryClientInstance.invalidateQueries({ queryKey: ['users'] });
+      queryClientInstance.invalidateQueries({ queryKey: ['user'] });
+      queryClientInstance.invalidateQueries({ queryKey: ['photos'] });
       navigate('/login-register');
     },
   });
